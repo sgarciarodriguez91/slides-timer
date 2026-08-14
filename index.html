@@ -19,7 +19,6 @@
       gap: 14px;
     }
     
-    /* Header Title */
     .app-title {
       font-size: 1.1rem;
       font-weight: 700;
@@ -47,7 +46,6 @@
       font-variant-numeric: tabular-nums;
     }
 
-    /* 5-Min Warning State */
     #display-container.warning-5m {
       background: #fef7e0;
       border-color: #f9ab00;
@@ -56,7 +54,6 @@
       color: #b06000;
     }
 
-    /* 1-Min Critical Warning State */
     #display-container.warning-1m {
       background: #fce8e6;
       border-color: #ea4335;
@@ -71,7 +68,7 @@
       to { border-color: #b31412; }
     }
 
-    /* Sidebar Banners */
+    /* Alert Banners */
     .banner {
       display: none;
       width: 100%;
@@ -84,7 +81,6 @@
     #banner-5m { background: #feefc3; color: #714b00; }
     #banner-1m { background: #f8d7da; color: #721c24; }
 
-    /* Controls Layout */
     .controls {
       width: 100%;
       display: flex;
@@ -116,7 +112,6 @@
     }
     button:hover { background: #1557b0; }
 
-    /* Preset Grid: 10, 20, 30 min */
     .preset-btns {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -140,31 +135,25 @@
 
   <div class="app-title">UpNext Chronometer</div>
 
-  <!-- Timer Card -->
   <div id="display-container">
     <div id="timer-display">10:00</div>
   </div>
 
-  <!-- Alert Banners -->
   <div id="banner-5m" class="banner">⚠️ 5 Minutes Remaining!</div>
   <div id="banner-1m" class="banner">🚨 1 Minute Remaining!</div>
 
-  <!-- Controls -->
   <div class="controls">
-    <!-- Manual Input -->
     <div class="input-group">
       <input type="number" id="minutes-input" min="1" max="180" placeholder="Custom Minutes">
       <button onclick="setCustomTime()">Set</button>
     </div>
 
-    <!-- Presets: 10, 20, 30 Mins -->
     <div class="preset-btns">
       <button onclick="setPreset(10)">10 Min</button>
       <button onclick="setPreset(20)">20 Min</button>
       <button onclick="setPreset(30)">30 Min</button>
     </div>
 
-    <!-- Action Buttons -->
     <div class="action-btns">
       <button style="flex:2;" id="start-btn" onclick="startTimer()">Start</button>
       <button class="btn-stop" style="flex:1;" onclick="resetTimer()">Reset</button>
@@ -186,57 +175,52 @@
     const banner1m = document.getElementById('banner-1m');
     const startBtn = document.getElementById('start-btn');
 
-    // Automatically request desktop notification permissions on load
-    window.addEventListener('DOMContentLoaded', () => {
-      if ("Notification" in window && Notification.permission === "default") {
-        Notification.requestPermission();
-      }
-    });
-
     function updateDisplay() {
       const minutes = String(Math.floor(duration / 60)).padStart(2, '0');
       const seconds = String(duration % 60).padStart(2, '0');
       display.textContent = `${minutes}:${seconds}`;
 
-      // 5-MIN REMINDER LOGIC (300 seconds)
+      // 5-MIN ALERT (300 seconds)
       if (duration === 300 && !triggered5m) {
         triggered5m = true;
         container.className = 'warning-5m';
         banner5m.style.display = 'block';
         banner1m.style.display = 'none';
         playGongSound(); 
-        sendDesktopAlert("UpNext Chronometer", "⚠️ 5 Minutes remaining in presentation!");
+        triggerInSlideBanner("⚠️ 5 MINUTES REMAINING", "#F9AB00", "#FFFFFF");
       }
 
-      // 1-MIN REMINDER LOGIC (60 seconds)
+      // 1-MIN CRITICAL ALERT (60 seconds)
       if (duration === 60 && !triggered1m) {
         triggered1m = true;
         container.className = 'warning-1m';
         banner5m.style.display = 'none';
         banner1m.style.display = 'block';
         playGongSound(); 
-        sendDesktopAlert("UpNext Chronometer", "🚨 Only 1 Minute remaining!");
+        triggerInSlideBanner("🚨 1 MINUTE REMAINING!", "#EA4335", "#FFFFFF");
       }
     }
 
-    // Native Desktop Notification pop-up over full SlideShow
-    function sendDesktopAlert(title, message) {
-      if ("Notification" in window && Notification.permission === "granted") {
-        new Notification(title, {
-          body: message,
-          requireInteraction: true // Stays on screen until clicked
-        });
+    // Injects a temporary big banner in the middle of the Google Slide presentation canvas
+    function triggerInSlideBanner(messageText, bgHex, textHex) {
+      if (window.google && google.script && google.script.run) {
+        google.script.run.withSuccessHandler(function(shapeId) {
+          if (shapeId) {
+            // Automatically delete the banner after 4 seconds (4000 ms)
+            setTimeout(() => {
+              google.script.run.removeSlideBanner(shapeId);
+            }, 4000);
+          }
+        }).showSlideBanner(messageText, bgHex, textHex);
       }
     }
 
-    // Synthesized Deep Chinese Gong Sound
+    // Deep Chinese Gong Audio Synthesis
     function playGongSound() {
       try {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         const ctx = new AudioContext();
-        
-        // Non-harmonic frequency multipliers for metallic gong timbre
-        const frequencies = [130.81, 206.00, 311.13, 466.16, 622.25]; // Low C fundamental + overtones
+        const frequencies = [130.81, 206.00, 311.13, 466.16, 622.25];
         
         frequencies.forEach((freq, index) => {
           const osc = ctx.createOscillator();
@@ -244,11 +228,8 @@
           
           osc.type = index === 0 ? 'sine' : 'triangle';
           osc.frequency.setValueAtTime(freq, ctx.currentTime);
-          
-          // Slight pitch drop on impact for gong effect
           osc.frequency.exponentialRampToValueAtTime(freq * 0.98, ctx.currentTime + 1.5);
 
-          // Deep, long exponential decay
           const volume = index === 0 ? 0.3 : 0.1 / index;
           gain.gain.setValueAtTime(volume, ctx.currentTime);
           gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 3.5);
@@ -260,16 +241,11 @@
           osc.stop(ctx.currentTime + 3.5);
         });
       } catch (e) {
-        console.log("Audio requires initial user click in sidebar.");
+        console.log("Audio waiting for user interaction");
       }
     }
 
     function startTimer() {
-      // Ensure notification permissions on user interaction
-      if ("Notification" in window && Notification.permission === "default") {
-        Notification.requestPermission();
-      }
-
       if (isRunning) {
         clearInterval(timerInterval);
         isRunning = false;
@@ -288,7 +264,7 @@
           isRunning = false;
           display.textContent = "00:00";
           playGongSound();
-          sendDesktopAlert("UpNext Chronometer", "⌛ Time's up!");
+          triggerInSlideBanner("⌛ TIME'S UP!", "#202124", "#FFFFFF");
         }
       }, 1000);
     }
