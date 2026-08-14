@@ -200,38 +200,75 @@
           if (shapeId) {
             setTimeout(() => {
               google.script.run.removeSlideBanner(shapeId);
-            }, 4000); // Banner disappears after 4 seconds
+            }, 5000); // Banner display increased to 5 seconds
           }
         }).showSlideBanner(messageText, bgHex, textHex);
       }
     }
 
-    // Chinese Gong Sound Generator
+    // Enhanced Authentic Deep Chinese Chau Gong Sound Generator
     function playGongSound() {
       try {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         const ctx = new AudioContext();
-        const frequencies = [130.81, 206.00, 311.13, 466.16];
-        
-        frequencies.forEach((freq, index) => {
+        const now = ctx.currentTime;
+        const duration = 5.5; // Rings out over 5.5 seconds
+
+        // Master Gain
+        const masterGain = ctx.createGain();
+        masterGain.gain.setValueAtTime(0.8, now);
+        masterGain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+        masterGain.connect(ctx.destination);
+
+        // Sub-bass rumble and fundamental base gong frequencies (Inharmonic bronze ratios)
+        const partials = [
+          { freq: 82.41, gain: 0.6, type: 'sine' },      // Low Fundamental (E2)
+          { freq: 123.47, gain: 0.4, type: 'sine' },     // Fundamental (B2)
+          { freq: 220.00, gain: 0.35, type: 'triangle' }, // Body
+          { freq: 311.13, gain: 0.25, type: 'square' },   // Metallic Ring
+          { freq: 466.16, gain: 0.2, type: 'sawtooth' }, // Metallic Overtone
+          { freq: 622.25, gain: 0.15, type: 'square' },   // High Shimmer
+          { freq: 880.00, gain: 0.1, type: 'sawtooth' }   // High Pitch Strike
+        ];
+
+        // Modulation Oscillator (LFO) for signature metallic gong wash/shimmer
+        const lfo = ctx.createOscillator();
+        const lfoGain = ctx.createGain();
+        lfo.frequency.setValueAtTime(4.5, now); // 4.5Hz tremor
+        lfoGain.gain.setValueAtTime(15, now);
+
+        partials.forEach((p) => {
           const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
+          const pGain = ctx.createGain();
+
+          osc.type = p.type;
           
-          osc.type = index === 0 ? 'sine' : 'triangle';
-          osc.frequency.setValueAtTime(freq, ctx.currentTime);
+          // Initial strike pitch drop (mimics heavy mallet impact on big gong surface)
+          osc.frequency.setValueAtTime(p.freq * 1.15, now);
+          osc.frequency.exponentialRampToValueAtTime(p.freq, now + 0.12);
 
-          const volume = index === 0 ? 0.3 : 0.1 / index;
-          gain.gain.setValueAtTime(volume, ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 3.0);
+          // Connect LFO modulation to metallic higher partials
+          if (p.freq > 200) {
+            lfo.connect(osc.frequency);
+          }
 
-          osc.connect(gain);
-          gain.connect(ctx.destination);
+          pGain.gain.setValueAtTime(p.gain, now);
+          // Higher frequencies fade quicker than low resonant fundamental
+          const decayTime = p.freq > 400 ? 2.5 : duration;
+          pGain.gain.exponentialRampToValueAtTime(0.0001, now + decayTime);
 
-          osc.start(ctx.currentTime);
-          osc.stop(ctx.currentTime + 3.0);
+          osc.connect(pGain);
+          pGain.connect(masterGain);
+
+          osc.start(now);
+          osc.stop(now + duration);
         });
+
+        lfo.start(now);
+        lfo.stop(now + duration);
+
       } catch (e) {
-        console.log("Audio waiting for user click.");
+        console.log("Audio waiting for user click.", e);
       }
     }
 
