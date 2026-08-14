@@ -2,43 +2,245 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body {
-      margin: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      background: transparent;
+    * {
+      box-sizing: border-box;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
-    #timer {
-      font-size: 3rem;
-      font-weight: bold;
-      color: #333333;
-      padding: 10px 20px;
-      border-radius: 8px;
-      background: rgba(255, 255, 255, 0.9);
+    body {
+      margin: 0;
+      padding: 16px;
+      background: #f9f9f9;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    
+    /* Timer Display */
+    #display-container {
+      width: 100%;
+      text-align: center;
+      padding: 20px;
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      transition: background 0.3s ease;
+    }
+    #timer-display {
+      font-size: 3.2rem;
+      font-weight: 700;
+      color: #202124;
+      font-variant-numeric: tabular-nums;
+    }
+    
+    /* Alert Style for 5-Minute Warning */
+    #display-container.warning {
+      background: #fff0f0;
+      border: 2px solid #ea4335;
+    }
+    #display-container.warning #timer-display {
+      color: #d93025;
+    }
+
+    /* Controls Panel */
+    .controls {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .input-group {
+      display: flex;
+      gap: 8px;
+    }
+    input[type="number"] {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 1rem;
+    }
+    button {
+      padding: 10px 14px;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      background: #1a73e8;
+      color: white;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #1557b0;
+    }
+    .preset-btns {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+    .preset-btns button {
+      background: #e8f0fe;
+      color: #1a73e8;
+    }
+    .preset-btns button:hover {
+      background: #d2e3fc;
+    }
+    .action-btns {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-stop {
+      background: #dc3545;
+    }
+    .btn-stop:hover {
+      background: #bb2d3b;
+    }
+    
+    /* Reminder Banner */
+    #reminder-banner {
+      display: none;
+      width: 100%;
+      padding: 10px;
+      background: #feefc3;
+      color: #714b00;
+      border-radius: 6px;
+      text-align: center;
+      font-weight: 600;
+      font-size: 0.85rem;
     }
   </style>
 </head>
 <body>
-  <div id="timer">05:00</div>
+
+  <!-- Timer Card -->
+  <div id="display-container">
+    <div id="timer-display">10:00</div>
+  </div>
+
+  <!-- 5-Min Reminder Banner -->
+  <div id="reminder-banner">⚠️ 5 Minutes Remaining!</div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <!-- Manual Input -->
+    <div class="input-group">
+      <input type="number" id="minutes-input" min="1" max="180" placeholder="Set Minutes (e.g. 15)">
+      <button onclick="setCustomTime()">Set</button>
+    </div>
+
+    <!-- Quick Preset Buttons -->
+    <div class="preset-btns">
+      <button onclick="setPreset(5)">5 Min</button>
+      <button onclick="setPreset(10)">10 Min</button>
+      <button onclick="setPreset(15)">15 Min</button>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-btns">
+      <button style="flex:2;" onclick="startTimer()">Start / Pause</button>
+      <button class="btn-stop" style="flex:1;" onclick="resetTimer()">Reset</button>
+    </div>
+  </div>
 
   <script>
-    let duration = 5 * 60; // 5-minute timer (300 seconds)
-    const display = document.getElementById('timer');
+    let duration = 10 * 60; // Default 10 mins
+    let initialDuration = 10 * 60;
+    let timerInterval = null;
+    let isRunning = false;
+    let reminderTriggered = false;
 
-    const interval = setInterval(() => {
+    const display = document.getElementById('timer-display');
+    const container = document.getElementById('display-container');
+    const reminderBanner = document.getElementById('reminder-banner');
+
+    function updateDisplay() {
       const minutes = String(Math.floor(duration / 60)).padStart(2, '0');
       const seconds = String(duration % 60).padStart(2, '0');
       display.textContent = `${minutes}:${seconds}`;
 
-      if (--duration < 0) {
-        clearInterval(interval);
-        display.textContent = "Time's up!";
+      // 5-MIN REMINDER LOGIC
+      if (duration === 300 && !reminderTriggered) { // 300 seconds = 5 minutes
+        trigger5MinReminder();
       }
-    }, 1000);
+    }
+
+    function trigger5MinReminder() {
+      reminderTriggered = true;
+      container.classList.add('warning');
+      reminderBanner.style.display = 'block';
+
+      // Play audio chime (Web Audio API - no external file needed)
+      playChime();
+    }
+
+    function playChime() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.setValueAtTime(880, ctx.currentTime); // A5 note
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.5);
+      } catch (e) {
+        console.log("Audio not allowed yet");
+      }
+    }
+
+    function startTimer() {
+      if (isRunning) {
+        clearInterval(timerInterval);
+        isRunning = false;
+        return;
+      }
+
+      isRunning = true;
+      timerInterval = setInterval(() => {
+        if (duration > 0) {
+          duration--;
+          updateDisplay();
+        } else {
+          clearInterval(timerInterval);
+          isRunning = false;
+          display.textContent = "Time's up!";
+        }
+      }, 1000);
+    }
+
+    function setCustomTime() {
+      const val = parseInt(document.getElementById('minutes-input').value);
+      if (val && val > 0) {
+        setPreset(val);
+      }
+    }
+
+    function setPreset(mins) {
+      clearInterval(timerInterval);
+      isRunning = false;
+      duration = mins * 60;
+      initialDuration = duration;
+      reminderTriggered = false;
+      container.classList.remove('warning');
+      reminderBanner.style.display = 'none';
+      updateDisplay();
+    }
+
+    function resetTimer() {
+      clearInterval(timerInterval);
+      isRunning = false;
+      duration = initialDuration;
+      reminderTriggered = false;
+      container.classList.remove('warning');
+      reminderBanner.style.display = 'none';
+      updateDisplay();
+    }
+
+    updateDisplay();
   </script>
 </body>
 </html>
