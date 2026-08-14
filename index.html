@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UpNext Chronometer</title>
   <style>
     * {
       box-sizing: border-box;
@@ -11,22 +12,33 @@
     body {
       margin: 0;
       padding: 16px;
-      background: #f9f9f9;
+      background: #f8f9fa;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 16px;
+      gap: 14px;
     }
     
-    /* Timer Display */
+    /* Header Title */
+    .app-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #1a73e8;
+      margin: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Timer Display Box */
     #display-container {
       width: 100%;
       text-align: center;
-      padding: 20px;
+      padding: 18px 10px;
       background: #ffffff;
       border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      transition: background 0.3s ease;
+      border: 2px solid #e0e0e0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      transition: all 0.3s ease;
     }
     #timer-display {
       font-size: 3.2rem;
@@ -34,17 +46,45 @@
       color: #202124;
       font-variant-numeric: tabular-nums;
     }
-    
-    /* Alert Style for 5-Minute Warning */
-    #display-container.warning {
-      background: #fff0f0;
-      border: 2px solid #ea4335;
+
+    /* 5-Min Warning State */
+    #display-container.warning-5m {
+      background: #fef7e0;
+      border-color: #f9ab00;
     }
-    #display-container.warning #timer-display {
-      color: #d93025;
+    #display-container.warning-5m #timer-display {
+      color: #b06000;
     }
 
-    /* Controls Panel */
+    /* 1-Min Critical Warning State */
+    #display-container.warning-1m {
+      background: #fce8e6;
+      border-color: #ea4335;
+      animation: pulse 1s infinite alternate;
+    }
+    #display-container.warning-1m #timer-display {
+      color: #c5221f;
+    }
+
+    @keyframes pulse {
+      from { border-color: #ea4335; }
+      to { border-color: #b31412; }
+    }
+
+    /* Banner Messages */
+    .banner {
+      display: none;
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: 6px;
+      text-align: center;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+    #banner-5m { background: #feefc3; color: #714b00; }
+    #banner-1m { background: #f8d7da; color: #721c24; }
+
+    /* Controls Layout */
     .controls {
       width: 100%;
       display: flex;
@@ -58,12 +98,13 @@
     input[type="number"] {
       flex: 1;
       padding: 8px 12px;
-      border: 1px solid #ccc;
+      border: 1px solid #dadce0;
       border-radius: 6px;
-      font-size: 1rem;
+      font-size: 0.95rem;
+      outline: none;
     }
     button {
-      padding: 10px 14px;
+      padding: 10px;
       border: none;
       border-radius: 6px;
       font-weight: 600;
@@ -73,9 +114,9 @@
       color: white;
       transition: background 0.2s;
     }
-    button:hover {
-      background: #1557b0;
-    }
+    button:hover { background: #1557b0; }
+
+    /* Preset Grid: 10, 20, 30 min */
     .preset-btns {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -85,62 +126,67 @@
       background: #e8f0fe;
       color: #1a73e8;
     }
-    .preset-btns button:hover {
-      background: #d2e3fc;
-    }
+    .preset-btns button:hover { background: #d2e3fc; }
+
     .action-btns {
       display: flex;
       gap: 8px;
     }
-    .btn-stop {
-      background: #dc3545;
-    }
-    .btn-stop:hover {
-      background: #bb2d3b;
-    }
-    
-    /* Reminder Banner */
-    #reminder-banner {
-      display: none;
+    .btn-stop { background: #dc3545; }
+    .btn-stop:hover { background: #bb2d3b; }
+
+    /* Fullscreen Desktop Notification Toggle */
+    .notification-toggle {
       width: 100%;
-      padding: 10px;
-      background: #feefc3;
-      color: #714b00;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      background: #edf2fa;
       border-radius: 6px;
-      text-align: center;
-      font-weight: 600;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
+      color: #3c4043;
+      font-weight: 500;
     }
   </style>
 </head>
 <body>
+
+  <div class="app-title">UpNext Chronometer</div>
 
   <!-- Timer Card -->
   <div id="display-container">
     <div id="timer-display">10:00</div>
   </div>
 
-  <!-- 5-Min Reminder Banner -->
-  <div id="reminder-banner">⚠️ 5 Minutes Remaining!</div>
+  <!-- Alert Banners -->
+  <div id="banner-5m" class="banner">⚠️ 5 Minutes Remaining!</div>
+  <div id="banner-1m" class="banner">🚨 1 Minute Remaining!</div>
+
+  <!-- Desktop Overlay Permission Toggle -->
+  <div class="notification-toggle">
+    <span>SlideShow Fullscreen Alerts</span>
+    <button id="notif-btn" onclick="requestNotificationPermission()" style="padding: 4px 8px; font-size: 0.75rem;">Enable</button>
+  </div>
 
   <!-- Controls -->
   <div class="controls">
     <!-- Manual Input -->
     <div class="input-group">
-      <input type="number" id="minutes-input" min="1" max="180" placeholder="Set Minutes (e.g. 15)">
+      <input type="number" id="minutes-input" min="1" max="180" placeholder="Custom Minutes">
       <button onclick="setCustomTime()">Set</button>
     </div>
 
-    <!-- Quick Preset Buttons -->
+    <!-- Updated Presets: 10, 20, 30 Mins -->
     <div class="preset-btns">
-      <button onclick="setPreset(5)">10 Min</button>
-      <button onclick="setPreset(10)">15 Min</button>
-      <button onclick="setPreset(15)">30 Min</button>
+      <button onclick="setPreset(10)">10 Min</button>
+      <button onclick="setPreset(20)">20 Min</button>
+      <button onclick="setPreset(30)">30 Min</button>
     </div>
 
     <!-- Action Buttons -->
     <div class="action-btns">
-      <button style="flex:2;" onclick="startTimer()">Start / Pause</button>
+      <button style="flex:2;" id="start-btn" onclick="startTimer()">Start</button>
       <button class="btn-stop" style="flex:1;" onclick="resetTimer()">Reset</button>
     </div>
   </div>
@@ -150,45 +196,83 @@
     let initialDuration = 10 * 60;
     let timerInterval = null;
     let isRunning = false;
-    let reminderTriggered = false;
+    
+    let triggered5m = false;
+    let triggered1m = false;
 
     const display = document.getElementById('timer-display');
     const container = document.getElementById('display-container');
-    const reminderBanner = document.getElementById('reminder-banner');
+    const banner5m = document.getElementById('banner-5m');
+    const banner1m = document.getElementById('banner-1m');
+    const startBtn = document.getElementById('start-btn');
+    const notifBtn = document.getElementById('notif-btn');
+
+    // Check system notification permission
+    if ("Notification" in window && Notification.permission === "granted") {
+      notifBtn.textContent = "Active ✓";
+      notifBtn.style.background = "#34a853";
+    }
+
+    function requestNotificationPermission() {
+      if ("Notification" in window) {
+        Notification.requestPermission().then(permission => {
+          if (permission === "granted") {
+            notifBtn.textContent = "Active ✓";
+            notifBtn.style.background = "#34a853";
+            new Notification("UpNext Chronometer", { body: "Fullscreen SlideShow alerts active!" });
+          }
+        });
+      }
+    }
 
     function updateDisplay() {
       const minutes = String(Math.floor(duration / 60)).padStart(2, '0');
       const seconds = String(duration % 60).padStart(2, '0');
       display.textContent = `${minutes}:${seconds}`;
 
-      // 5-MIN REMINDER LOGIC
-      if (duration === 300 && !reminderTriggered) { // 300 seconds = 5 minutes
-        trigger5MinReminder();
+      // 5-MIN REMINDER LOGIC (300 seconds)
+      if (duration === 300 && !triggered5m) {
+        triggered5m = true;
+        container.className = 'warning-5m';
+        banner5m.style.display = 'block';
+        banner1m.style.display = 'none';
+        playChime(600); // Gentle pitch
+        sendDesktopAlert("UpNext Alert", "⚠️ 5 Minutes remaining in presentation!");
+      }
+
+      // 1-MIN REMINDER LOGIC (60 seconds)
+      if (duration === 60 && !triggered1m) {
+        triggered1m = true;
+        container.className = 'warning-1m';
+        banner5m.style.display = 'none';
+        banner1m.style.display = 'block';
+        playChime(880); // Higher urgency pitch
+        sendDesktopAlert("UpNext Critical Alert", "🚨 Only 1 Minute remaining!");
       }
     }
 
-    function trigger5MinReminder() {
-      reminderTriggered = true;
-      container.classList.add('warning');
-      reminderBanner.style.display = 'block';
-
-      // Play audio chime (Web Audio API - no external file needed)
-      playChime();
+    function sendDesktopAlert(title, message) {
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification(title, {
+          body: message,
+          requireInteraction: true // Keeps notification visible on top
+        });
+      }
     }
 
-    function playChime() {
+    function playChime(freq) {
       try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.connect(gain);
         gain.connect(ctx.destination);
-        osc.frequency.setValueAtTime(880, ctx.currentTime); // A5 note
-        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        osc.frequency.setValueAtTime(freq, ctx.currentTime);
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
         osc.start();
-        osc.stop(ctx.currentTime + 0.5);
+        osc.stop(ctx.currentTime + 0.6);
       } catch (e) {
-        console.log("Audio not allowed yet");
+        console.log("Audio waiting for user interaction");
       }
     }
 
@@ -196,10 +280,12 @@
       if (isRunning) {
         clearInterval(timerInterval);
         isRunning = false;
+        startBtn.textContent = "Resume";
         return;
       }
 
       isRunning = true;
+      startBtn.textContent = "Pause";
       timerInterval = setInterval(() => {
         if (duration > 0) {
           duration--;
@@ -207,7 +293,8 @@
         } else {
           clearInterval(timerInterval);
           isRunning = false;
-          display.textContent = "Time's up!";
+          display.textContent = "00:00";
+          sendDesktopAlert("UpNext Chronometer", "⌛ Time's up!");
         }
       }, 1000);
     }
@@ -222,22 +309,28 @@
     function setPreset(mins) {
       clearInterval(timerInterval);
       isRunning = false;
+      startBtn.textContent = "Start";
       duration = mins * 60;
       initialDuration = duration;
-      reminderTriggered = false;
-      container.classList.remove('warning');
-      reminderBanner.style.display = 'none';
+      clearAlertStates();
       updateDisplay();
     }
 
     function resetTimer() {
       clearInterval(timerInterval);
       isRunning = false;
+      startBtn.textContent = "Start";
       duration = initialDuration;
-      reminderTriggered = false;
-      container.classList.remove('warning');
-      reminderBanner.style.display = 'none';
+      clearAlertStates();
       updateDisplay();
+    }
+
+    function clearAlertStates() {
+      triggered5m = false;
+      triggered1m = false;
+      container.className = '';
+      banner5m.style.display = 'none';
+      banner1m.style.display = 'none';
     }
 
     updateDisplay();
