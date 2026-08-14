@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>UpNext Chronometer</title>
+  <title>UpNext Timer</title>
   <style>
     * {
       box-sizing: border-box;
@@ -16,14 +16,13 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 14px;
+      gap: 12px;
     }
     
     .app-title {
       font-size: 1.1rem;
       font-weight: 700;
       color: #1a73e8;
-      margin: 0;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
@@ -32,11 +31,10 @@
     #display-container {
       width: 100%;
       text-align: center;
-      padding: 18px 10px;
+      padding: 16px 10px;
       background: #ffffff;
-      border-radius: 12px;
+      border-radius: 10px;
       border: 2px solid #e0e0e0;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
       transition: all 0.3s ease;
     }
     #timer-display {
@@ -46,33 +44,24 @@
       font-variant-numeric: tabular-nums;
     }
 
+    /* Alert States */
     #display-container.warning-5m {
       background: #fef7e0;
       border-color: #f9ab00;
     }
-    #display-container.warning-5m #timer-display {
-      color: #b06000;
-    }
+    #display-container.warning-5m #timer-display { color: #b06000; }
 
     #display-container.warning-1m {
       background: #fce8e6;
       border-color: #ea4335;
-      animation: pulse 1s infinite alternate;
     }
-    #display-container.warning-1m #timer-display {
-      color: #c5221f;
-    }
+    #display-container.warning-1m #timer-display { color: #c5221f; }
 
-    @keyframes pulse {
-      from { border-color: #ea4335; }
-      to { border-color: #b31412; }
-    }
-
-    /* Alert Banners */
+    /* Alert Banner Messages */
     .banner {
       display: none;
       width: 100%;
-      padding: 8px 12px;
+      padding: 8px;
       border-radius: 6px;
       text-align: center;
       font-weight: 600;
@@ -81,11 +70,12 @@
     #banner-5m { background: #feefc3; color: #714b00; }
     #banner-1m { background: #f8d7da; color: #721c24; }
 
+    /* Layout Controls */
     .controls {
       width: 100%;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 8px;
     }
     .input-group {
       display: flex;
@@ -93,11 +83,10 @@
     }
     input[type="number"] {
       flex: 1;
-      padding: 8px 12px;
+      padding: 8px;
       border: 1px solid #dadce0;
       border-radius: 6px;
       font-size: 0.95rem;
-      outline: none;
     }
     button {
       padding: 10px;
@@ -108,10 +97,10 @@
       cursor: pointer;
       background: #1a73e8;
       color: white;
-      transition: background 0.2s;
     }
     button:hover { background: #1557b0; }
 
+    /* Presets: 10, 20, 30 Mins */
     .preset-btns {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -133,18 +122,21 @@
 </head>
 <body>
 
-  <div class="app-title">UpNext Chronometer</div>
+  <div class="app-title">UpNext Timer</div>
 
+  <!-- Timer Card -->
   <div id="display-container">
     <div id="timer-display">10:00</div>
   </div>
 
+  <!-- Banners inside Sidebar -->
   <div id="banner-5m" class="banner">⚠️ 5 Minutes Remaining!</div>
   <div id="banner-1m" class="banner">🚨 1 Minute Remaining!</div>
 
+  <!-- Controls -->
   <div class="controls">
     <div class="input-group">
-      <input type="number" id="minutes-input" min="1" max="180" placeholder="Custom Minutes">
+      <input type="number" id="minutes-input" min="1" max="180" placeholder="Custom Mins">
       <button onclick="setCustomTime()">Set</button>
     </div>
 
@@ -180,47 +172,46 @@
       const seconds = String(duration % 60).padStart(2, '0');
       display.textContent = `${minutes}:${seconds}`;
 
-      // 5-MIN ALERT (300 seconds)
+      // 5-MINUTE ALERT (300 seconds)
       if (duration === 300 && !triggered5m) {
         triggered5m = true;
         container.className = 'warning-5m';
         banner5m.style.display = 'block';
         banner1m.style.display = 'none';
         playGongSound(); 
-        triggerInSlideBanner("⚠️ 5 MINUTES REMAINING", "#F9AB00", "#FFFFFF");
+        triggerSlideBanner("⚠️ 5 MINUTES REMAINING", "#F9AB00", "#FFFFFF");
       }
 
-      // 1-MIN CRITICAL ALERT (60 seconds)
+      // 1-MINUTE ALERT (60 seconds)
       if (duration === 60 && !triggered1m) {
         triggered1m = true;
         container.className = 'warning-1m';
         banner5m.style.display = 'none';
         banner1m.style.display = 'block';
         playGongSound(); 
-        triggerInSlideBanner("🚨 1 MINUTE REMAINING!", "#EA4335", "#FFFFFF");
+        triggerSlideBanner("🚨 1 MINUTE REMAINING!", "#EA4335", "#FFFFFF");
       }
     }
 
-    // Injects a temporary big banner in the middle of the Google Slide presentation canvas
-    function triggerInSlideBanner(messageText, bgHex, textHex) {
+    // Injects temporary banner into center of active Google Slide
+    function triggerSlideBanner(messageText, bgHex, textHex) {
       if (window.google && google.script && google.script.run) {
         google.script.run.withSuccessHandler(function(shapeId) {
           if (shapeId) {
-            // Automatically delete the banner after 4 seconds (4000 ms)
             setTimeout(() => {
               google.script.run.removeSlideBanner(shapeId);
-            }, 4000);
+            }, 4000); // Banner disappears after 4 seconds
           }
         }).showSlideBanner(messageText, bgHex, textHex);
       }
     }
 
-    // Deep Chinese Gong Audio Synthesis
+    // Chinese Gong Sound Generator
     function playGongSound() {
       try {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         const ctx = new AudioContext();
-        const frequencies = [130.81, 206.00, 311.13, 466.16, 622.25];
+        const frequencies = [130.81, 206.00, 311.13, 466.16];
         
         frequencies.forEach((freq, index) => {
           const osc = ctx.createOscillator();
@@ -228,20 +219,19 @@
           
           osc.type = index === 0 ? 'sine' : 'triangle';
           osc.frequency.setValueAtTime(freq, ctx.currentTime);
-          osc.frequency.exponentialRampToValueAtTime(freq * 0.98, ctx.currentTime + 1.5);
 
           const volume = index === 0 ? 0.3 : 0.1 / index;
           gain.gain.setValueAtTime(volume, ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 3.5);
+          gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 3.0);
 
           osc.connect(gain);
           gain.connect(ctx.destination);
 
           osc.start(ctx.currentTime);
-          osc.stop(ctx.currentTime + 3.5);
+          osc.stop(ctx.currentTime + 3.0);
         });
       } catch (e) {
-        console.log("Audio waiting for user interaction");
+        console.log("Audio waiting for user click.");
       }
     }
 
@@ -264,16 +254,14 @@
           isRunning = false;
           display.textContent = "00:00";
           playGongSound();
-          triggerInSlideBanner("⌛ TIME'S UP!", "#202124", "#FFFFFF");
+          triggerSlideBanner("⌛ TIME'S UP!", "#202124", "#FFFFFF");
         }
       }, 1000);
     }
 
     function setCustomTime() {
       const val = parseInt(document.getElementById('minutes-input').value);
-      if (val && val > 0) {
-        setPreset(val);
-      }
+      if (val && val > 0) setPreset(val);
     }
 
     function setPreset(mins) {
@@ -282,7 +270,7 @@
       startBtn.textContent = "Start";
       duration = mins * 60;
       initialDuration = duration;
-      clearAlertStates();
+      clearAlerts();
       updateDisplay();
     }
 
@@ -291,11 +279,11 @@
       isRunning = false;
       startBtn.textContent = "Start";
       duration = initialDuration;
-      clearAlertStates();
+      clearAlerts();
       updateDisplay();
     }
 
-    function clearAlertStates() {
+    function clearAlerts() {
       triggered5m = false;
       triggered1m = false;
       container.className = '';
