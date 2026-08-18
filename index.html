@@ -18,7 +18,6 @@
       align-items: center;
       gap: 12px;
     }
-    
     .app-title {
       font-size: 1.1rem;
       font-weight: 700;
@@ -26,8 +25,6 @@
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
-
-    /* Timer Display Box */
     #display-container {
       width: 100%;
       text-align: center;
@@ -43,8 +40,6 @@
       color: #202124;
       font-variant-numeric: tabular-nums;
     }
-
-    /* Alert States */
     #display-container.warning-5m {
       background: #fef7e0;
       border-color: #f9ab00;
@@ -57,20 +52,6 @@
     }
     #display-container.warning-1m #timer-display { color: #c5221f; }
 
-    /* Alert Banner Messages */
-    .banner {
-      display: none;
-      width: 100%;
-      padding: 8px;
-      border-radius: 6px;
-      text-align: center;
-      font-weight: 600;
-      font-size: 0.85rem;
-    }
-    #banner-5m { background: #feefc3; color: #714b00; }
-    #banner-1m { background: #f8d7da; color: #721c24; }
-
-    /* Layout Controls */
     .controls {
       width: 100%;
       display: flex;
@@ -100,7 +81,6 @@
     }
     button:hover { background: #1557b0; }
 
-    /* Presets: 10, 20, 30 Mins */
     .preset-btns {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -124,16 +104,10 @@
 
   <div class="app-title">UpNext Timer</div>
 
-  <!-- Timer Card -->
   <div id="display-container">
     <div id="timer-display">10:00</div>
   </div>
 
-  <!-- Banners inside Sidebar -->
-  <div id="banner-5m" class="banner">⚠️ 5 Minutes Remaining!</div>
-  <div id="banner-1m" class="banner">🚨 1 Minute Remaining!</div>
-
-  <!-- Controls -->
   <div class="controls">
     <div class="input-group">
       <input type="number" id="minutes-input" min="1" max="180" placeholder="Custom Mins">
@@ -153,7 +127,7 @@
   </div>
 
   <script>
-    let duration = 10 * 60; // Default 10 mins
+    let duration = 10 * 60;
     let initialDuration = 10 * 60;
     let timerInterval = null;
     let isRunning = false;
@@ -163,8 +137,6 @@
 
     const display = document.getElementById('timer-display');
     const container = document.getElementById('display-container');
-    const banner5m = document.getElementById('banner-5m');
-    const banner1m = document.getElementById('banner-1m');
     const startBtn = document.getElementById('start-btn');
 
     function updateDisplay() {
@@ -172,90 +144,66 @@
       const seconds = String(duration % 60).padStart(2, '0');
       display.textContent = `${minutes}:${seconds}`;
 
-      // 5-MINUTE ALERT (300 seconds)
       if (duration === 300 && !triggered5m) {
         triggered5m = true;
         container.className = 'warning-5m';
-        banner5m.style.display = 'block';
-        banner1m.style.display = 'none';
         playGongSound(); 
-        triggerSlideBanner("⚠️ 5 MINUTES REMAINING", "#F9AB00", "#FFFFFF");
       }
 
-      // 1-MINUTE ALERT (60 seconds)
       if (duration === 60 && !triggered1m) {
         triggered1m = true;
         container.className = 'warning-1m';
-        banner5m.style.display = 'none';
-        banner1m.style.display = 'block';
         playGongSound(); 
-        triggerSlideBanner("🚨 1 MINUTE REMAINING!", "#EA4335", "#FFFFFF");
       }
     }
 
-    // Injects temporary banner into center of active Google Slide
-    function triggerSlideBanner(messageText, bgHex, textHex) {
-      if (window.google && google.script && google.script.run) {
-        google.script.run.withSuccessHandler(function(shapeId) {
-          if (shapeId) {
-            setTimeout(() => {
-              google.script.run.removeSlideBanner(shapeId);
-            }, 5000); // Banner display increased to 5 seconds
-          }
-        }).showSlideBanner(messageText, bgHex, textHex);
-      }
-    }
-
-    // Enhanced Authentic Deep Chinese Chau Gong Sound Generator
+    // Tuned Chinese Gong Synthesizer (6-second decay)
     function playGongSound() {
       try {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         const ctx = new AudioContext();
         const now = ctx.currentTime;
-        const duration = 5.5; // Rings out over 5.5 seconds
+        const duration = 6.0; 
 
-        // Master Gain
         const masterGain = ctx.createGain();
-        masterGain.gain.setValueAtTime(0.8, now);
+        masterGain.gain.setValueAtTime(0.7, now);
         masterGain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
         masterGain.connect(ctx.destination);
 
-        // Sub-bass rumble and fundamental base gong frequencies (Inharmonic bronze ratios)
+        // Harmonic series tuned to a traditional bronze Chinese Chau Gong pitch
         const partials = [
-          { freq: 82.41, gain: 0.6, type: 'sine' },      // Low Fundamental (E2)
-          { freq: 123.47, gain: 0.4, type: 'sine' },     // Fundamental (B2)
-          { freq: 220.00, gain: 0.35, type: 'triangle' }, // Body
-          { freq: 311.13, gain: 0.25, type: 'square' },   // Metallic Ring
-          { freq: 466.16, gain: 0.2, type: 'sawtooth' }, // Metallic Overtone
-          { freq: 622.25, gain: 0.15, type: 'square' },   // High Shimmer
-          { freq: 880.00, gain: 0.1, type: 'sawtooth' }   // High Pitch Strike
+          { freq: 110.00, gain: 0.50, type: 'sine' },      // Low Root Tone (A2)
+          { freq: 164.81, gain: 0.35, type: 'triangle' },  // Fifth (E3)
+          { freq: 220.00, gain: 0.30, type: 'sine' },      // Octave (A3)
+          { freq: 277.18, gain: 0.25, type: 'triangle' },  // Major Third (C#4)
+          { freq: 329.63, gain: 0.20, type: 'sawtooth' },  // Metallic Ring (E4)
+          { freq: 440.00, gain: 0.15, type: 'square' },    // High Metallic Edge
+          { freq: 554.37, gain: 0.10, type: 'sawtooth' }   // High Shimmer
         ];
 
-        // Modulation Oscillator (LFO) for signature metallic gong wash/shimmer
+        // Modulation Oscillator to simulate natural bronze surface vibration/shimmer
         const lfo = ctx.createOscillator();
         const lfoGain = ctx.createGain();
-        lfo.frequency.setValueAtTime(4.5, now); // 4.5Hz tremor
-        lfoGain.gain.setValueAtTime(15, now);
+        lfo.frequency.setValueAtTime(3.5, now); 
+        lfoGain.gain.setValueAtTime(8, now);
 
         partials.forEach((p) => {
           const osc = ctx.createOscillator();
           const pGain = ctx.createGain();
 
           osc.type = p.type;
-          
-          // Initial strike pitch drop (mimics heavy mallet impact on big gong surface)
-          osc.frequency.setValueAtTime(p.freq * 1.15, now);
-          osc.frequency.exponentialRampToValueAtTime(p.freq, now + 0.12);
+          osc.frequency.setValueAtTime(p.freq * 1.08, now);
+          osc.frequency.exponentialRampToValueAtTime(p.freq, now + 0.15);
 
-          // Connect LFO modulation to metallic higher partials
           if (p.freq > 200) {
             lfo.connect(osc.frequency);
           }
 
-          pGain.gain.setValueAtTime(p.gain, now);
-          // Higher frequencies fade quicker than low resonant fundamental
-          const decayTime = p.freq > 400 ? 2.5 : duration;
-          pGain.gain.exponentialRampToValueAtTime(0.0001, now + decayTime);
+          pGain.gain.setValueAtTime(0.001, now);
+          pGain.gain.linearRampToValueAtTime(p.gain, now + 0.04);
+          
+          const decay = p.freq > 400 ? 3.5 : duration;
+          pGain.gain.exponentialRampToValueAtTime(0.0001, now + decay);
 
           osc.connect(pGain);
           pGain.connect(masterGain);
@@ -291,7 +239,6 @@
           isRunning = false;
           display.textContent = "00:00";
           playGongSound();
-          triggerSlideBanner("⌛ TIME'S UP!", "#202124", "#FFFFFF");
         }
       }, 1000);
     }
@@ -324,10 +271,12 @@
       triggered5m = false;
       triggered1m = false;
       container.className = '';
-      banner5m.style.display = 'none';
-      banner1m.style.display = 'none';
     }
 
+    updateDisplay();
+  </script>
+</body>
+</html>
     updateDisplay();
   </script>
 </body>
