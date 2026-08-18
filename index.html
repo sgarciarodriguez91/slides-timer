@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>UpNext Timer</title>
+  <title>UpNext Presentation Timer</title>
   <style>
     * {
       box-sizing: border-box;
@@ -11,119 +11,145 @@
     }
     body {
       margin: 0;
-      padding: 16px;
-      background: #f8f9fa;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-    }
-    .app-title {
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: #1a73e8;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    #display-container {
-      width: 100%;
-      text-align: center;
-      padding: 16px 10px;
+      padding: 12px;
       background: #ffffff;
-      border-radius: 10px;
-      border: 2px solid #e0e0e0;
+      color: #202124;
+      font-size: 14px;
+    }
+    
+    /* Timer Display */
+    #display-container {
+      text-align: center;
+      padding: 16px 0;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border: 1px solid #dadce0;
+      margin-bottom: 16px;
       transition: all 0.3s ease;
     }
     #timer-display {
-      font-size: 3.2rem;
+      font-size: 3rem;
       font-weight: 700;
       color: #202124;
       font-variant-numeric: tabular-nums;
+      line-height: 1;
     }
-    #display-container.warning-5m {
-      background: #fef7e0;
-      border-color: #f9ab00;
-    }
-    #display-container.warning-5m #timer-display { color: #b06000; }
 
-    #display-container.warning-1m {
-      background: #fce8e6;
-      border-color: #ea4335;
-    }
+    /* Warning States */
+    #display-container.warning-5m { background: #fef7e0; border-color: #f9ab00; }
+    #display-container.warning-5m #timer-display { color: #b06000; }
+    #display-container.warning-1m { background: #fce8e6; border-color: #ea4335; }
     #display-container.warning-1m #timer-display { color: #c5221f; }
 
-    .controls {
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
+    /* Settings & Controls */
+    .section-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #5f6368;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      display: block;
     }
+    
+    .sound-selector-group {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    select {
+      flex: 1;
+      padding: 8px;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      background: #fff;
+      font-size: 14px;
+      outline: none;
+    }
+    .btn-icon {
+      padding: 8px 12px;
+      background: #e8eaed;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .btn-icon:hover { background: #dadce0; }
+
     .input-group {
       display: flex;
-      gap: 8px;
+      gap: 6px;
+      margin-bottom: 8px;
     }
     input[type="number"] {
       flex: 1;
       padding: 8px;
       border: 1px solid #dadce0;
-      border-radius: 6px;
-      font-size: 0.95rem;
+      border-radius: 4px;
+      font-size: 14px;
     }
+
+    /* Buttons */
     button {
-      padding: 10px;
+      padding: 8px;
       border: none;
-      border-radius: 6px;
+      border-radius: 4px;
       font-weight: 600;
-      font-size: 0.9rem;
       cursor: pointer;
-      background: #1a73e8;
-      color: white;
+      font-size: 14px;
+      transition: background 0.2s;
     }
-    button:hover { background: #1557b0; }
+    .btn-primary { background: #1a73e8; color: white; }
+    .btn-primary:hover { background: #1557b0; }
+    .btn-secondary { background: #e8f0fe; color: #1a73e8; }
+    .btn-secondary:hover { background: #d2e3fc; }
+    .btn-danger { background: #ea4335; color: white; }
+    .btn-danger:hover { background: #d33426; }
 
     .preset-btns {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 6px;
+      margin-bottom: 16px;
     }
-    .preset-btns button {
-      background: #e8f0fe;
-      color: #1a73e8;
-    }
-    .preset-btns button:hover { background: #d2e3fc; }
-
     .action-btns {
       display: flex;
-      gap: 8px;
+      gap: 6px;
     }
-    .btn-stop { background: #dc3545; }
-    .btn-stop:hover { background: #bb2d3b; }
   </style>
 </head>
 <body>
-
-  <div class="app-title">UpNext Timer</div>
 
   <div id="display-container">
     <div id="timer-display">10:00</div>
   </div>
 
-  <div class="controls">
-    <div class="input-group">
-      <input type="number" id="minutes-input" min="1" max="180" placeholder="Custom Mins">
-      <button onclick="setCustomTime()">Set</button>
-    </div>
+  <span class="section-label">Alert Sound</span>
+  <div class="sound-selector-group">
+    <select id="sound-select">
+      <option value="tibetan">🥣 Tibetan Singing Bowl (Calm)</option>
+      <option value="crystal">🔮 Crystal Singing Bowl (Clear)</option>
+      <option value="marimba">🪵 Organic Marimba (Warm)</option>
+      <option value="zen">🔔 Zen Temple Bell (Deep)</option>
+      <option value="corporate">🏢 Executive Chime (Modern)</option>
+    </select>
+    <button class="btn-icon" onclick="testSound()" title="Test Sound">▶</button>
+  </div>
 
-    <div class="preset-btns">
-      <button onclick="setPreset(10)">10 Min</button>
-      <button onclick="setPreset(20)">20 Min</button>
-      <button onclick="setPreset(30)">30 Min</button>
-    </div>
+  <span class="section-label">Set Timer</span>
+  <div class="input-group">
+    <input type="number" id="minutes-input" min="1" max="180" placeholder="Custom Mins">
+    <button class="btn-primary" onclick="setCustomTime()">Set</button>
+  </div>
 
-    <div class="action-btns">
-      <button style="flex:2;" id="start-btn" onclick="startTimer()">Start</button>
-      <button class="btn-stop" style="flex:1;" onclick="resetTimer()">Reset</button>
-    </div>
+  <div class="preset-btns">
+    <button class="btn-secondary" onclick="setPreset(10)">10m</button>
+    <button class="btn-secondary" onclick="setPreset(20)">20m</button>
+    <button class="btn-secondary" onclick="setPreset(30)">30m</button>
+  </div>
+
+  <div class="action-btns">
+    <button class="btn-primary" style="flex:2;" id="start-btn" onclick="startTimer()">Start</button>
+    <button class="btn-danger" style="flex:1;" onclick="resetTimer()">Reset</button>
   </div>
 
   <script>
@@ -131,13 +157,13 @@
     let initialDuration = 10 * 60;
     let timerInterval = null;
     let isRunning = false;
-    
     let triggered5m = false;
     let triggered1m = false;
 
     const display = document.getElementById('timer-display');
     const container = document.getElementById('display-container');
     const startBtn = document.getElementById('start-btn');
+    const soundSelect = document.getElementById('sound-select');
 
     function updateDisplay() {
       const minutes = String(Math.floor(duration / 60)).padStart(2, '0');
@@ -147,82 +173,15 @@
       if (duration === 300 && !triggered5m) {
         triggered5m = true;
         container.className = 'warning-5m';
-        playSingingBowl(); 
+        playSelectedSound(); 
+        triggerVisualSlideAlert("⚠️ 5 MINUTES REMAINING");
       }
 
       if (duration === 60 && !triggered1m) {
         triggered1m = true;
         container.className = 'warning-1m';
-        playSingingBowl(); 
-      }
-    }
-
-    // Professional Tibetan Singing Bowl Synthesizer (7-second natural decay)
-    function playSingingBowl() {
-      try {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        const ctx = new AudioContext();
-        const now = ctx.currentTime;
-        const totalDuration = 7.0;
-
-        // Master Volume
-        const masterGain = ctx.createGain();
-        masterGain.gain.setValueAtTime(1.5, now);
-        masterGain.gain.exponentialRampToValueAtTime(0.0001, now + totalDuration);
-        masterGain.connect(ctx.destination);
-
-        // Low-pass filter to remove harshness and give a warm, wooden/metallic bowl resonance
-        const filter = ctx.createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(1800, now);
-        filter.connect(masterGain);
-
-        // Natural non-harmonic modes characteristic of a handcrafted singing bowl
-        const partials = [
-          { freq: 180.00, gain: 0.60 }, // Fundamental pitch (F3)
-          { freq: 498.60, gain: 0.40 }, // 2.77x overtone
-          { freq: 918.00, gain: 0.25 }, // 5.10x overtone
-          { freq: 1422.0, gain: 0.15 }  // High bell sparkle
-        ];
-
-        // LFO (Low-Frequency Oscillator) creates the signature slow 'singing' pulse (wa-wa effect)
-        const lfo = ctx.createOscillator();
-        const lfoGain = ctx.createGain();
-        lfo.frequency.setValueAtTime(3.2, now); // 3.2 Hz beating frequency
-        lfoGain.gain.setValueAtTime(4.0, now);
-
-        partials.forEach((p, i) => {
-          const osc = ctx.createOscillator();
-          const pGain = ctx.createGain();
-
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(p.freq, now);
-
-          // Connect LFO to higher overtones for natural acoustic shimmer
-          if (i > 0) {
-            lfo.connect(osc.frequency);
-          }
-
-          // Soft felt mallet strike: slightly slower attack (0.08s) than a hard strike
-          pGain.gain.setValueAtTime(0, now);
-          pGain.gain.linearRampToValueAtTime(p.gain, now + 0.08);
-
-          // Overtones decay faster than the deep fundamental base tone
-          const decayTime = totalDuration * (1 - (i * 0.1));
-          pGain.gain.exponentialRampToValueAtTime(0.0001, now + decayTime);
-
-          osc.connect(pGain);
-          pGain.connect(filter);
-
-          osc.start(now);
-          osc.stop(now + totalDuration);
-        });
-
-        lfo.start(now);
-        lfo.stop(now + totalDuration);
-
-      } catch (e) {
-        console.log("Audio waiting for user click.", e);
+        playSelectedSound(); 
+        triggerVisualSlideAlert("🚨 1 MINUTE REMAINING");
       }
     }
 
@@ -233,7 +192,6 @@
         startBtn.textContent = "Resume";
         return;
       }
-
       isRunning = true;
       startBtn.textContent = "Pause";
       timerInterval = setInterval(() => {
@@ -244,7 +202,8 @@
           clearInterval(timerInterval);
           isRunning = false;
           display.textContent = "00:00";
-          playSingingBowl();
+          playSelectedSound();
+          triggerVisualSlideAlert("⌛ TIME'S UP");
         }
       }, 1000);
     }
@@ -260,23 +219,162 @@
       startBtn.textContent = "Start";
       duration = mins * 60;
       initialDuration = duration;
-      clearAlerts();
+      triggered5m = false;
+      triggered1m = false;
+      container.className = '';
       updateDisplay();
     }
 
     function resetTimer() {
-      clearInterval(timerInterval);
-      isRunning = false;
-      startBtn.textContent = "Start";
-      duration = initialDuration;
-      clearAlerts();
-      updateDisplay();
+      setPreset(initialDuration / 60);
     }
 
-    function clearAlerts() {
-      triggered5m = false;
-      triggered1m = false;
-      container.className = '';
+    // --- Google Slides Integration (Optional/Safe to leave in) ---
+    function triggerVisualSlideAlert(message) {
+      if (window.google && google.script && google.script.run) {
+        // Calls the presentation backend if available
+        try {
+           google.script.run.showSlideBanner(message); 
+        } catch(e) {}
+      }
+    }
+
+    // --- Audio Routing ---
+    function testSound() {
+      playSelectedSound();
+    }
+
+    function playSelectedSound() {
+      const selection = soundSelect.value;
+      if (selection === 'tibetan') playTibetanBowl();
+      else if (selection === 'crystal') playCrystalBowl();
+      else if (selection === 'marimba') playMarimbaChime();
+      else if (selection === 'zen') playZenBell();
+      else if (selection === 'corporate') playCorporateChime();
+    }
+
+    // --- Audio Synthesizers ---
+    function playTibetanBowl() {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const now = ctx.currentTime;
+      const master = ctx.createGain();
+      master.gain.setValueAtTime(1.5, now);
+      master.gain.exponentialRampToValueAtTime(0.0001, now + 7.0);
+      master.connect(ctx.destination);
+
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(1800, now);
+      filter.connect(master);
+
+      const lfo = ctx.createOscillator();
+      const lfoGain = ctx.createGain();
+      lfo.frequency.setValueAtTime(3.2, now);
+      lfoGain.gain.setValueAtTime(4.0, now);
+
+      [{f: 180, g: 0.6}, {f: 498.6, g: 0.4}, {f: 918, g: 0.25}, {f: 1422, g: 0.15}].forEach((p, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(p.f, now);
+        if (i > 0) lfo.connect(osc.frequency);
+        
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(p.g, now + 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 7.0 * (1 - (i * 0.1)));
+        
+        osc.connect(gain);
+        gain.connect(filter);
+        osc.start(now);
+        osc.stop(now + 7.0);
+      });
+      lfo.start(now); lfo.stop(now + 7.0);
+    }
+
+    function playCrystalBowl() {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const now = ctx.currentTime;
+      const master = ctx.createGain();
+      master.gain.setValueAtTime(1.0, now);
+      master.gain.exponentialRampToValueAtTime(0.0001, now + 6.0);
+      master.connect(ctx.destination);
+
+      [432, 864, 1296].forEach((f, i) => {
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(f, now);
+        g.gain.setValueAtTime(0, now);
+        g.gain.linearRampToValueAtTime(0.5 / (i + 1), now + 0.1);
+        g.gain.exponentialRampToValueAtTime(0.0001, now + (6.0 - i));
+        
+        osc.connect(g);
+        g.connect(master);
+        osc.start(now);
+        osc.stop(now + 6.0);
+      });
+    }
+
+    function playMarimbaChime() {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const now = ctx.currentTime;
+      [{f: 261.63, t: 0}, {f: 329.63, t: 0.12}, {f: 392, t: 0.24}, {f: 523.25, t: 0.36}].forEach(n => {
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(n.f, now + n.t);
+        g.gain.setValueAtTime(0, now + n.t);
+        g.gain.linearRampToValueAtTime(0.8, now + n.t + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.0001, now + n.t + 1.8);
+        osc.connect(g);
+        g.connect(ctx.destination);
+        osc.start(now + n.t);
+        osc.stop(now + n.t + 2.0);
+      });
+    }
+
+    function playZenBell() {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const now = ctx.currentTime;
+      const master = ctx.createGain();
+      master.gain.setValueAtTime(1.2, now);
+      master.gain.exponentialRampToValueAtTime(0.0001, now + 6.5);
+      master.connect(ctx.destination);
+
+      [220, 440, 659.25, 880].forEach((f, i) => {
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.type = i % 2 === 0 ? 'sine' : 'triangle';
+        osc.frequency.setValueAtTime(f, now);
+        g.gain.setValueAtTime(0, now);
+        g.gain.linearRampToValueAtTime(0.5 / (i + 1), now + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, now + (6.5 - i * 0.8));
+        
+        osc.connect(g);
+        g.connect(master);
+        osc.start(now);
+        osc.stop(now + 6.5);
+      });
+    }
+
+    function playCorporateChime() {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const now = ctx.currentTime;
+      const playTone = (freq, delay) => {
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + delay);
+        g.gain.setValueAtTime(0, now + delay);
+        g.gain.linearRampToValueAtTime(0.6, now + delay + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, now + delay + 2.2);
+        osc.connect(g);
+        g.connect(ctx.destination);
+        osc.start(now + delay);
+        osc.stop(now + delay + 2.5);
+      };
+      playTone(440, 0);
+      playTone(659.25, 0.22);
     }
 
     updateDisplay();
