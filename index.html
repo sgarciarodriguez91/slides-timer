@@ -1,19 +1,18 @@
-// Pure, Mathematically Tuned Chinese Gong Synthesizer (6-second natural ring)
+// Tuned High-Volume Chinese Gong (7-second deep sustain)
 function playGongSound() {
   try {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     const ctx = new AudioContext();
     const now = ctx.currentTime;
-    const totalDuration = 6.0;
+    const totalDuration = 7.0; // Extended to 7 seconds
 
-    // Master Volume Control
+    // Master Volume Control (Boosted significantly)
     const masterGain = ctx.createGain();
-    masterGain.gain.setValueAtTime(0.6, now);
+    masterGain.gain.setValueAtTime(1.8, now); // Increased from 0.6 to 1.8 for maximum punch
     masterGain.gain.exponentialRampToValueAtTime(0.0001, now + totalDuration);
     masterGain.connect(ctx.destination);
 
-    // Harmonic ratios tuned to pure intervals (E2, A2, C#3, E3, A3, G#4)
-    // Pure sine waves eliminate harsh, un-tuned distortion
+    // Harmonic frequencies tuned to pure intervals (E2, A2, C#3, E3, A3, G#4)
     const frequencies = [82.41, 110.00, 138.59, 164.81, 220.00, 415.30];
 
     frequencies.forEach((freq, i) => {
@@ -22,14 +21,13 @@ function playGongSound() {
 
       osc.type = 'sine'; // Pure harmonic tone
 
-      // Pitch strike simulation: Starts slightly sharp (1%) and settles immediately into true pitch
+      // Pitch strike simulation: Starts slightly sharp (1%) and settles into true pitch
       osc.frequency.setValueAtTime(freq * 1.01, now);
       osc.frequency.exponentialRampToValueAtTime(freq, now + 0.08);
 
       // Attack & Decay Envelope
-      // Fundamental pitches (low) decay slowly; higher shimmer tones decay faster
-      const peakGain = 0.4 / (i + 1);
-      const decayTime = totalDuration * (1 - (i * 0.12));
+      const peakGain = 0.8 / (i * 0.7 + 1); // Boosted individual layer gains
+      const decayTime = totalDuration * (1 - (i * 0.08)); // Slower, longer sustain fade
 
       gain.gain.setValueAtTime(0, now);
       gain.gain.linearRampToValueAtTime(peakGain, now + 0.03); // Instant strike impact
