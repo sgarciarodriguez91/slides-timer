@@ -1,46 +1,285 @@
-// Tuned High-Volume Chinese Gong (7-second deep sustain)
-function playGongSound() {
-  try {
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    const ctx = new AudioContext();
-    const now = ctx.currentTime;
-    const totalDuration = 7.0; // Extended to 7 seconds
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UpNext Timer</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    body {
+      margin: 0;
+      padding: 16px;
+      background: #f8f9fa;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .app-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #1a73e8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    #display-container {
+      width: 100%;
+      text-align: center;
+      padding: 16px 10px;
+      background: #ffffff;
+      border-radius: 10px;
+      border: 2px solid #e0e0e0;
+      transition: all 0.3s ease;
+    }
+    #timer-display {
+      font-size: 3.2rem;
+      font-weight: 700;
+      color: #202124;
+      font-variant-numeric: tabular-nums;
+    }
+    #display-container.warning-5m {
+      background: #fef7e0;
+      border-color: #f9ab00;
+    }
+    #display-container.warning-5m #timer-display { color: #b06000; }
 
-    // Master Volume Control (Boosted significantly)
-    const masterGain = ctx.createGain();
-    masterGain.gain.setValueAtTime(1.8, now); // Increased from 0.6 to 1.8 for maximum punch
-    masterGain.gain.exponentialRampToValueAtTime(0.0001, now + totalDuration);
-    masterGain.connect(ctx.destination);
+    #display-container.warning-1m {
+      background: #fce8e6;
+      border-color: #ea4335;
+    }
+    #display-container.warning-1m #timer-display { color: #c5221f; }
 
-    // Harmonic frequencies tuned to pure intervals (E2, A2, C#3, E3, A3, G#4)
-    const frequencies = [82.41, 110.00, 138.59, 164.81, 220.00, 415.30];
+    .controls {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .input-group {
+      display: flex;
+      gap: 8px;
+    }
+    input[type="number"] {
+      flex: 1;
+      padding: 8px;
+      border: 1px solid #dadce0;
+      border-radius: 6px;
+      font-size: 0.95rem;
+    }
+    button {
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      background: #1a73e8;
+      color: white;
+    }
+    button:hover { background: #1557b0; }
 
-    frequencies.forEach((freq, i) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
+    .preset-btns {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+    .preset-btns button {
+      background: #e8f0fe;
+      color: #1a73e8;
+    }
+    .preset-btns button:hover { background: #d2e3fc; }
 
-      osc.type = 'sine'; // Pure harmonic tone
+    .action-btns {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-stop { background: #dc3545; }
+    .btn-stop:hover { background: #bb2d3b; }
+  </style>
+</head>
+<body>
 
-      // Pitch strike simulation: Starts slightly sharp (1%) and settles into true pitch
-      osc.frequency.setValueAtTime(freq * 1.01, now);
-      osc.frequency.exponentialRampToValueAtTime(freq, now + 0.08);
+  <div class="app-title">UpNext Timer</div>
 
-      // Attack & Decay Envelope
-      const peakGain = 0.8 / (i * 0.7 + 1); // Boosted individual layer gains
-      const decayTime = totalDuration * (1 - (i * 0.08)); // Slower, longer sustain fade
+  <div id="display-container">
+    <div id="timer-display">10:00</div>
+  </div>
 
-      gain.gain.setValueAtTime(0, now);
-      gain.gain.linearRampToValueAtTime(peakGain, now + 0.03); // Instant strike impact
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + decayTime);
+  <div class="controls">
+    <div class="input-group">
+      <input type="number" id="minutes-input" min="1" max="180" placeholder="Custom Mins">
+      <button onclick="setCustomTime()">Set</button>
+    </div>
 
-      osc.connect(gain);
-      gain.connect(masterGain);
+    <div class="preset-btns">
+      <button onclick="setPreset(10)">10 Min</button>
+      <button onclick="setPreset(20)">20 Min</button>
+      <button onclick="setPreset(30)">30 Min</button>
+    </div>
 
-      osc.start(now);
-      osc.stop(now + totalDuration);
-    });
+    <div class="action-btns">
+      <button style="flex:2;" id="start-btn" onclick="startTimer()">Start</button>
+      <button class="btn-stop" style="flex:1;" onclick="resetTimer()">Reset</button>
+    </div>
+  </div>
 
-  } catch (e) {
-    console.log("Audio waiting for user click.", e);
-  }
-}
+  <script>
+    let duration = 10 * 60;
+    let initialDuration = 10 * 60;
+    let timerInterval = null;
+    let isRunning = false;
+    
+    let triggered5m = false;
+    let triggered1m = false;
+
+    const display = document.getElementById('timer-display');
+    const container = document.getElementById('display-container');
+    const startBtn = document.getElementById('start-btn');
+
+    function updateDisplay() {
+      const minutes = String(Math.floor(duration / 60)).padStart(2, '0');
+      const seconds = String(duration % 60).padStart(2, '0');
+      display.textContent = `${minutes}:${seconds}`;
+
+      if (duration === 300 && !triggered5m) {
+        triggered5m = true;
+        container.className = 'warning-5m';
+        playSingingBowl(); 
+      }
+
+      if (duration === 60 && !triggered1m) {
+        triggered1m = true;
+        container.className = 'warning-1m';
+        playSingingBowl(); 
+      }
+    }
+
+    // Professional Tibetan Singing Bowl Synthesizer (7-second natural decay)
+    function playSingingBowl() {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const ctx = new AudioContext();
+        const now = ctx.currentTime;
+        const totalDuration = 7.0;
+
+        // Master Volume
+        const masterGain = ctx.createGain();
+        masterGain.gain.setValueAtTime(1.5, now);
+        masterGain.gain.exponentialRampToValueAtTime(0.0001, now + totalDuration);
+        masterGain.connect(ctx.destination);
+
+        // Low-pass filter to remove harshness and give a warm, wooden/metallic bowl resonance
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(1800, now);
+        filter.connect(masterGain);
+
+        // Natural non-harmonic modes characteristic of a handcrafted singing bowl
+        const partials = [
+          { freq: 180.00, gain: 0.60 }, // Fundamental pitch (F3)
+          { freq: 498.60, gain: 0.40 }, // 2.77x overtone
+          { freq: 918.00, gain: 0.25 }, // 5.10x overtone
+          { freq: 1422.0, gain: 0.15 }  // High bell sparkle
+        ];
+
+        // LFO (Low-Frequency Oscillator) creates the signature slow 'singing' pulse (wa-wa effect)
+        const lfo = ctx.createOscillator();
+        const lfoGain = ctx.createGain();
+        lfo.frequency.setValueAtTime(3.2, now); // 3.2 Hz beating frequency
+        lfoGain.gain.setValueAtTime(4.0, now);
+
+        partials.forEach((p, i) => {
+          const osc = ctx.createOscillator();
+          const pGain = ctx.createGain();
+
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(p.freq, now);
+
+          // Connect LFO to higher overtones for natural acoustic shimmer
+          if (i > 0) {
+            lfo.connect(osc.frequency);
+          }
+
+          // Soft felt mallet strike: slightly slower attack (0.08s) than a hard strike
+          pGain.gain.setValueAtTime(0, now);
+          pGain.gain.linearRampToValueAtTime(p.gain, now + 0.08);
+
+          // Overtones decay faster than the deep fundamental base tone
+          const decayTime = totalDuration * (1 - (i * 0.1));
+          pGain.gain.exponentialRampToValueAtTime(0.0001, now + decayTime);
+
+          osc.connect(pGain);
+          pGain.connect(filter);
+
+          osc.start(now);
+          osc.stop(now + totalDuration);
+        });
+
+        lfo.start(now);
+        lfo.stop(now + totalDuration);
+
+      } catch (e) {
+        console.log("Audio waiting for user click.", e);
+      }
+    }
+
+    function startTimer() {
+      if (isRunning) {
+        clearInterval(timerInterval);
+        isRunning = false;
+        startBtn.textContent = "Resume";
+        return;
+      }
+
+      isRunning = true;
+      startBtn.textContent = "Pause";
+      timerInterval = setInterval(() => {
+        if (duration > 0) {
+          duration--;
+          updateDisplay();
+        } else {
+          clearInterval(timerInterval);
+          isRunning = false;
+          display.textContent = "00:00";
+          playSingingBowl();
+        }
+      }, 1000);
+    }
+
+    function setCustomTime() {
+      const val = parseInt(document.getElementById('minutes-input').value);
+      if (val && val > 0) setPreset(val);
+    }
+
+    function setPreset(mins) {
+      clearInterval(timerInterval);
+      isRunning = false;
+      startBtn.textContent = "Start";
+      duration = mins * 60;
+      initialDuration = duration;
+      clearAlerts();
+      updateDisplay();
+    }
+
+    function resetTimer() {
+      clearInterval(timerInterval);
+      isRunning = false;
+      startBtn.textContent = "Start";
+      duration = initialDuration;
+      clearAlerts();
+      updateDisplay();
+    }
+
+    function clearAlerts() {
+      triggered5m = false;
+      triggered1m = false;
+      container.className = '';
+    }
+
+    updateDisplay();
+  </script>
+</body>
+</html>
